@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import DetailsModal from './DetailsModal';
-import RerunModal from './RerunModal'; // <-- IMPORT
+import RerunModal from './RerunModal';
 
-// Re-using the types defined in the modal
+// Type definitions (remain the same)
 type Evidence = {
   id: number;
   answer: string;
@@ -25,19 +25,19 @@ type EmissionData = {
   evidence: Evidence[];
 };
 
-// This is the shape of the data after we process it: a map from company name to its scope data
 type ProcessedData = Map<string, { [scope: string]: EmissionData | undefined }>;
 
 interface EmissionsTableProps {
-  data: any;
+  data: ProcessedData;
   scopes: string[];
   companies: string[];
-  year: number; // <-- PASS THE YEAR
+  year: number; 
 }
 
-export default function EmissionsTable({ data, scopes, companies }: EmissionsTableProps) {
+// THE FIX IS ON THE LINE BELOW
+export default function EmissionsTable({ data, scopes, companies, year }: EmissionsTableProps) {
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
-  const [rerunCompany, setRerunCompany] = useState<string | null>(null); // <-- NEW STATE
+  const [rerunCompany, setRerunCompany] = useState<string | null>(null);
 
   const handleCellClick = (companyName: string, scope: string) => {
     const companyData = data.get(companyName);
@@ -54,9 +54,9 @@ export default function EmissionsTable({ data, scopes, companies }: EmissionsTab
             <tr>
               <th>Company</th>
               {scopes.map(scope => <th key={scope}>{scope}</th>)}
-              <th>Actions</th> {/* <-- NEW COLUMN HEADER */}
+              <th>Actions</th>
             </tr>
-            </thead>
+          </thead>
           <tbody>
             {companies.map(companyName => (
               <tr key={companyName}>
@@ -65,12 +65,15 @@ export default function EmissionsTable({ data, scopes, companies }: EmissionsTab
                   const cellData = data.get(companyName)?.[scope];
                   const hasValue = cellData && cellData.final_answer;
                   return (
-                    <td key={scope} className={hasValue ? 'clickable-cell' : 'empty-cell'} onClick={() => hasValue && handleCellClick(companyName, scope)}>
+                    <td
+                      key={scope}
+                      className={hasValue ? 'clickable-cell' : 'empty-cell'}
+                      onClick={() => hasValue && handleCellClick(companyName, scope)}
+                    >
                       {hasValue ? cellData.final_answer : 'N/A'}
                     </td>
                   );
                 })}
-                {/* --- NEW ACTIONS CELL --- */}
                 <td className="actions-cell">
                   <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
                     Re-run...
@@ -82,11 +85,11 @@ export default function EmissionsTable({ data, scopes, companies }: EmissionsTab
         </table>
       </div>
       {selectedData && <DetailsModal data={selectedData} onClose={() => setSelectedData(null)} />}
-      {/* --- RENDER THE NEW MODAL --- */}
+      
       {rerunCompany && (
         <RerunModal 
           companyName={rerunCompany}
-          year={year}
+          year={year} // This will now work correctly
           onClose={() => setRerunCompany(null)} 
         />
       )}
