@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import EmissionsTable from './components/EmissionsTable';
 import './globals.css';
 
-// Define the types for our data, including the nested evidence
+// Type definitions remain the same
 type Evidence = {
   id: number;
   answer: string;
@@ -21,9 +21,9 @@ type EmissionData = {
   explanation: string;
   discrepancy: string;
   evidence: Evidence[];
+  created_at: string; // Ensure created_at is in the type
 };
 
-// This will be the shape of our processed data
 type ProcessedData = Map<string, { [scope: string]: EmissionData | undefined }>;
 
 // --- Main Page Component ---
@@ -32,10 +32,11 @@ export default async function HomePage() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // 1. Fetch emissions data AND its related evidence in one go!
+  // 1. --- CHANGE THE SORT ORDER IN THE QUERY ---
   const { data: emissions, error } = await supabase
     .from('emissions_data')
-    .select('*, evidence(*)'); // This is the magic part
+    .select('*, evidence(*)')
+    .order('created_at', { ascending: true }); // <-- CHANGED: Sort by creation time, oldest first
 
   if (error) {
     return <p>Error loading data: {error.message}</p>;
@@ -47,7 +48,9 @@ export default async function HomePage() {
   const scopeSet = new Set<string>();
 
   (emissions as EmissionData[]).forEach(item => {
-    companySet.add(item.company_name);
+    // Because the 'emissions' array is now sorted by creation time,
+    // companies will be added to this Set in the correct order.
+    companySet.add(item.company_name); 
     scopeSet.add(item.scope_type);
 
     if (!processedData.has(item.company_name)) {
@@ -56,9 +59,12 @@ export default async function HomePage() {
     processedData.get(item.company_name)![item.scope_type] = item;
   });
 
-  const companies = Array.from(companySet).sort();
-  const scopes = ["Scope 1", "Scope 2", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent order
-  const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear(); // Get year from data or default
+  // 3. --- REMOVE THE ALPHABETICAL RE-SORTING ---
+  const companies = Array.from(companySet); // <-- CHANGED: Removed the .sort() to preserve the fetch order
+  const scopes = ["Scope 1", "Scope 2 (market-based)", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent column order
+
+  // Get the year from the first data point, or default to the current year
+  const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear();
 
   return (
     <main className="container">
@@ -74,5 +80,5 @@ export default async function HomePage() {
   );
 }
 
-// This tells Next.js to treat this page as dynamic, re-fetching data on each request.
+// Revalidation remains the same
 export const revalidate = 0;
