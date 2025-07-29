@@ -1,103 +1,71 @@
-import Image from "next/image";
+import { createClient } from '@supabase/supabase-js';
+import './globals.css'; // Make sure you have some basic styles
 
-export default function Home() {
+// NOTE: These environment variables need to be set in Vercel, not here directly.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Define the type for our data for better code quality with TypeScript
+type EmissionData = {
+  id: number;
+  company_name: string;
+  year: number;
+  scope_type: string;
+  final_answer: string;
+  explanation: string;
+  discrepancy: string;
+};
+
+export default async function HomePage() {
+  // Fetch the data from the 'emissions_data' table
+  const { data: emissions, error } = await supabase
+    .from('emissions_data')
+    .select('*')
+    .order('company_name', { ascending: true })
+    .order('year', { ascending: false });
+
+  if (error) {
+    return <p>Error loading data: {error.message}</p>;
+  }
+
+  if (!emissions || emissions.length === 0) {
+    return <p>No emissions data found.</p>;
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    <main className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-6">Company Emissions Data</h1>
+      <p className="mb-8 text-gray-600">This data is automatically collected and updated. Last updated data may be viewable in the table below.</p>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="py-2 px-4 border">Company</th>
+              <th className="py-2 px-4 border">Year</th>
+              <th className="py-2 px-4 border">Scope</th>
+              <th className="py-2 px-4 border">Reported Emissions</th>
+              <th className="py-2 px-4 border">Explanation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {emissions.map((item: EmissionData) => (
+              <tr key={item.id} className="hover:bg-gray-100">
+                <td className="py-2 px-4 border font-medium">{item.company_name}</td>
+                <td className="py-2 px-4 border">{item.year}</td>
+                <td className="py-2 px-4 border">{item.scope_type}</td>
+                <td className="py-2 px-4 border font-mono">{item.final_answer}</td>
+                <td className="py-2 px-4 border text-sm text-gray-700">{item.explanation}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
   );
 }
+
+// This tells Next.js to treat this as a dynamic page,
+// re-fetching the data on every request to ensure it's always fresh.
+export const revalidate = 0; 
