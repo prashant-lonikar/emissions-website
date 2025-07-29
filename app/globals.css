@@ -1,8 +1,74 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Optional: Add some global body styles for better typography and background */
+/* General Body Styles */
 body {
-  @apply bg-gray-50 text-gray-800;
+  background-color: #f8f9fa; /* A very light gray background */
+  color: #212529; /* Dark text color for readability */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* A container to center the content and add some space */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Typography */
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #343a40;
+}
+
+p {
+  font-size: 1.1rem;
+  color: #6c757d; /* A softer gray for subtitles */
+  margin-bottom: 2rem;
+}
+
+/* Table Styling */
+.emissions-table {
+  width: 100%;
+  border-collapse: collapse; /* Removes space between borders */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden; /* Ensures the border-radius is respected by the cells */
+}
+
+.emissions-table th,
+.emissions-table td {
+  padding: 12px 15px; /* Add padding to cells */
+  border-bottom: 1px solid #dee2e6; /* A light line between rows */
+  text-align: left;
+}
+
+.emissions-table thead th {
+  background-color: #e9ecef; /* A light gray for the header */
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Zebra-striping for better readability */
+.emissions-table tbody tr:nth-of-type(even) {
+  background-color: #f8f9fa;
+}
+
+/* Hover effect for rows */
+.emissions-table tbody tr:hover {
+  background-color: #e2e6ea;
+}
+
+/* Specific cell styling */
+.emissions-table .company-name {
+  font-weight: 500;
+  color: #000;
+}
+
+.emissions-table .emissions-value {
+  font-family: "Courier New", Courier, monospace;
+  font-weight: bold;
+  color: #000;
 }
