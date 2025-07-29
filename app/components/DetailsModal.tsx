@@ -18,9 +18,9 @@ type EmissionData = {
   year: number;
   scope_type: string;
   final_answer: string;
-  explanation: string;
+  explanation:string;
   discrepancy: string;
-  evidence: Evidence[]; // This now includes the evidence
+  evidence: Evidence[];
 };
 
 interface DetailsModalProps {
@@ -29,52 +29,87 @@ interface DetailsModalProps {
 }
 
 export default function DetailsModal({ data, onClose }: DetailsModalProps) {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  // State to manage the PDF URL (can be a real URL or a local blob URL)
+  const [pdfDisplayUrl, setPdfDisplayUrl] = useState<string | null>(null);
+  // State to hold the original URL for the fallback button
+  const [originalPdfUrl, setOriginalPdfUrl] = useState<string | null>(null);
   const [pdfPage, setPdfPage] = useState<number | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [activeLink, setActiveLink] = useState<string | null>(null);
 
+  // This useEffect is crucial for cleaning up blob URLs to prevent memory leaks.
   useEffect(() => {
-    // Close modal on 'Escape' key press
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
+    return () => {
+      if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfDisplayUrl);
       }
+    };
+  }, [pdfDisplayUrl]);
+
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  const handleSourceLinkClick = (url: string, page: number) => {
-    setPdfState('loading');
-    setPdfUrl(url);
-    setPdfPage(page);
-    setActiveLink(`${url}-${page}`);
+  // The new, more robust PDF loading function
+  const handleSourceLinkClick = async (url: string, page: number) => {
+    // Clean up any previous blob URL
+    if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(pdfDisplayUrl);
+    }
 
-    // This is a simplified loader. A more robust one would try blob fetching like in your example.
-    // For modern browsers and security policies (like Apple's), a direct iframe link with a fallback is often more reliable.
-    setTimeout(() => {
-        // We'll just assume it loads and let the iframe handle it, or show the error/fallback message.
-        // A real check would involve trying to fetch the resource, which can be blocked by CORS.
-        setPdfState('loaded'); 
-    }, 500); // Give a small delay for visual feedback
+    setPdfState('loading');
+    setActiveLink(`${url}-${page}`);
+    setOriginalPdfUrl(url); // Store the original URL for the fallback link
+    setPdfPage(page);
+
+    try {
+      // 1. Try to fetch the PDF as a blob
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const pdfBlob = await response.blob();
+
+      // Some servers might return HTML error pages with a 200 OK status, so we check the MIME type
+      if (pdfBlob.type !== 'application/pdf') {
+        throw new Error(`File is not a PDF. MIME type: ${pdfBlob.type}`);
+      }
+      
+      // 2. If successful, create a local blob URL and set the state to 'loaded'
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfDisplayUrl(blobUrl);
+      setPdfState('loaded');
+      
+    } catch (e) {
+      // 3. If fetching fails, log the error and set the state to 'error'
+      console.warn(`Could not fetch PDF as blob: ${e}. Showing fallback.`);
+      setPdfState('error');
+    }
   };
 
   const renderPdfViewer = () => {
+    const finalUrl = (pdfState === 'error' ? originalPdfUrl : pdfDisplayUrl) + (pdfPage ? `#page=${pdfPage}` : '');
+
     switch (pdfState) {
       case 'loading':
         return <div className="pdf-fallback-container"><p>Loading document...</p></div>;
+      
       case 'loaded':
-        const finalUrl = pdfUrl + (pdfPage ? `#page=${pdfPage}` : '');
+        return <iframe src={finalUrl} title="PDF Viewer" style={{ width: '100%', height: '100%', border: 'none' }}></iframe>;
+      
+      case 'error':
+        // This is the fallback UI that now gets correctly triggered!
         return (
-          <>
-            <iframe src={finalUrl} title="PDF Viewer" style={{ width: '100%', height: '100%', border: 'none' }}></iframe>
-            <div className="pdf-fallback-container" style={{ position: 'absolute', top: 0, left: 0, zIndex: -1, visibility: 'hidden' }}>
-              <p>If the PDF does not load, the document's security settings may be preventing it from being displayed here.</p>
-              <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="pdf-fallback-button">Open in New Tab</a>
-            </div>
-          </>
+          <div className="pdf-fallback-container">
+            <p>This document's security settings prevent it from being displayed here. This is a standard security feature on sites like Apple.com to protect their content.</p>
+            <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="pdf-fallback-button">Open Document in New Tab</a>
+          </div>
         );
+      
       case 'idle':
       default:
         return <div className="pdf-fallback-container"><p>Click a source link from the evidence list to view the document.</p></div>;
