@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DetailsModal from './DetailsModal';
+import RerunModal from './RerunModal'; // <-- IMPORT
 
 // Re-using the types defined in the modal
 type Evidence = {
@@ -28,13 +29,15 @@ type EmissionData = {
 type ProcessedData = Map<string, { [scope: string]: EmissionData | undefined }>;
 
 interface EmissionsTableProps {
-  data: ProcessedData;
+  data: any;
   scopes: string[];
   companies: string[];
+  year: number; // <-- PASS THE YEAR
 }
 
 export default function EmissionsTable({ data, scopes, companies }: EmissionsTableProps) {
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
+  const [rerunCompany, setRerunCompany] = useState<string | null>(null); // <-- NEW STATE
 
   const handleCellClick = (companyName: string, scope: string) => {
     const companyData = data.get(companyName);
@@ -51,8 +54,9 @@ export default function EmissionsTable({ data, scopes, companies }: EmissionsTab
             <tr>
               <th>Company</th>
               {scopes.map(scope => <th key={scope}>{scope}</th>)}
+              <th>Actions</th> {/* <-- NEW COLUMN HEADER */}
             </tr>
-          </thead>
+            </thead>
           <tbody>
             {companies.map(companyName => (
               <tr key={companyName}>
@@ -60,23 +64,32 @@ export default function EmissionsTable({ data, scopes, companies }: EmissionsTab
                 {scopes.map(scope => {
                   const cellData = data.get(companyName)?.[scope];
                   const hasValue = cellData && cellData.final_answer;
-
                   return (
-                    <td
-                      key={scope}
-                      className={hasValue ? 'clickable-cell' : 'empty-cell'}
-                      onClick={() => hasValue && handleCellClick(companyName, scope)}
-                    >
+                    <td key={scope} className={hasValue ? 'clickable-cell' : 'empty-cell'} onClick={() => hasValue && handleCellClick(companyName, scope)}>
                       {hasValue ? cellData.final_answer : 'N/A'}
                     </td>
                   );
                 })}
+                {/* --- NEW ACTIONS CELL --- */}
+                <td className="actions-cell">
+                  <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
+                    Re-run...
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {selectedData && <DetailsModal data={selectedData} onClose={() => setSelectedData(null)} />}
+      {/* --- RENDER THE NEW MODAL --- */}
+      {rerunCompany && (
+        <RerunModal 
+          companyName={rerunCompany}
+          year={year}
+          onClose={() => setRerunCompany(null)} 
+        />
+      )}
     </>
   );
 }

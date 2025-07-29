@@ -58,6 +58,7 @@ export default async function HomePage() {
 
   const companies = Array.from(companySet).sort();
   const scopes = ["Scope 1", "Scope 2", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent order
+  const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear(); // Get year from data or default
 
   return (
     <main className="container">
@@ -67,7 +68,7 @@ export default async function HomePage() {
       {(!emissions || emissions.length === 0) ? (
         <p>No emissions data found yet. Please run the data collection workflow.</p>
       ) : (
-        <EmissionsTable data={processedData} scopes={scopes} companies={companies} />
+        <EmissionsTable data={processedData} scopes={scopes} companies={companies} year={year} />
       )}
     </main>
   );
