@@ -61,7 +61,7 @@ export default async function HomePage() {
 
   // 3. --- REMOVE THE ALPHABETICAL RE-SORTING ---
   const companies = Array.from(companySet); // <-- CHANGED: Removed the .sort() to preserve the fetch order
-  const scopes = ["Scope 1", "Scope 2 (market-based)", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent column order
+  const scopes = ["Scope 1", "Scope 2", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent column order
 
   // Get the year from the first data point, or default to the current year
   const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear();
