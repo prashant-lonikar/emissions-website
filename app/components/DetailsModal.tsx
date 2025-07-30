@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { EmissionData } from '@/types'; // <-- IMPORT our central type
-import { useRouter } from 'next/navigation';
+import { EmissionData } from '@/types';
+import { useRouter } from 'next/navigation'; // <-- ADD THIS IMPORT
 
 interface DetailsModalProps {
   data: EmissionData;
@@ -10,17 +10,13 @@ interface DetailsModalProps {
 }
 
 export default function DetailsModal({ data, onClose }: DetailsModalProps) {
-  const router = useRouter();
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  
-    // State to manage the PDF URL (can be a real URL or a local blob URL)
+  const router = useRouter(); // This line will now be valid
   const [pdfDisplayUrl, setPdfDisplayUrl] = useState<string | null>(null);
-  // State to hold the original URL for the fallback button
   const [originalPdfUrl, setOriginalPdfUrl] = useState<string | null>(null);
   const [pdfPage, setPdfPage] = useState<number | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [activeLink, setActiveLink] = useState<string | null>(null);
-
+  
   // --- NEW state for single re-run ---
   const [isRerunning, setIsRerunning] = useState(false);
   const [rerunError, setRerunError] = useState<string | null>(null);
@@ -41,6 +37,43 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  // The new, more robust PDF loading function
+  const handleSourceLinkClick = async (url: string, page: number) => {
+    // Clean up any previous blob URL
+    if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(pdfDisplayUrl);
+    }
+
+    setPdfState('loading');
+    setActiveLink(`${url}-${page}`);
+    setOriginalPdfUrl(url); // Store the original URL for the fallback link
+    setPdfPage(page);
+
+    try {
+      // 1. Try to fetch the PDF as a blob
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const pdfBlob = await response.blob();
+
+      // Some servers might return HTML error pages with a 200 OK status, so we check the MIME type
+      if (pdfBlob.type !== 'application/pdf') {
+        throw new Error(`File is not a PDF (MIME type: ${pdfBlob.type})`);
+      }
+      
+      // 2. If successful, create a local blob URL and set the state to 'loaded'
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfDisplayUrl(blobUrl);
+      setPdfState('loaded');
+      
+    } catch (e: any) {
+      // 3. If fetching fails, log the error and set the state to 'error'
+      console.warn(`Could not fetch PDF as blob: ${e.message}. Showing fallback.`);
+      setPdfState('error');
+    }
+  };
 
   // --- NEW function to handle single re-run ---
   const handleRerunSingle = async () => {
@@ -79,43 +112,6 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
     }
   };
 
-  // The new, more robust PDF loading function
-  const handleSourceLinkClick = async (url: string, page: number) => {
-    // Clean up any previous blob URL
-    if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(pdfDisplayUrl);
-    }
-
-    setPdfState('loading');
-    setActiveLink(`${url}-${page}`);
-    setOriginalPdfUrl(url); // Store the original URL for the fallback link
-    setPdfPage(page);
-
-    try {
-      // 1. Try to fetch the PDF as a blob
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const pdfBlob = await response.blob();
-
-      // Some servers might return HTML error pages with a 200 OK status, so we check the MIME type
-      if (pdfBlob.type !== 'application/pdf') {
-        throw new Error(`File is not a PDF. MIME type: ${pdfBlob.type}`);
-      }
-      
-      // 2. If successful, create a local blob URL and set the state to 'loaded'
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      setPdfDisplayUrl(blobUrl);
-      setPdfState('loaded');
-      
-    } catch (e) {
-      // 3. If fetching fails, log the error and set the state to 'error'
-      console.warn(`Could not fetch PDF as blob: ${e}. Showing fallback.`);
-      setPdfState('error');
-    }
-  };
-
   const renderPdfViewer = () => {
     const finalUrl = (pdfState === 'error' ? originalPdfUrl : pdfDisplayUrl) + (pdfPage ? `#page=${pdfPage}` : '');
 
@@ -149,53 +145,53 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
           <span className="close-button" onClick={onClose}>×</span>
         </div>
         <div className="modal-body">
-          <div className="modal-details-pane">
-            <div className="final-answer-section">
-              <h3>Final Answer</h3>
-              <p className="final-answer-value">{data.final_answer || 'N/A'}</p>
-            </div>
-            <div className="summary-section">
-              <h3>Summary Explanation</h3>
-              <p>{data.explanation || 'No explanation provided.'}</p>
-              {data.discrepancy && data.discrepancy !== "None" && (
-                <>
-                  <h3>Discrepancy Report</h3>
-                  <p>{data.discrepancy}</p>
-                </>
-              )}
-            </div>
-            <h3>Evidence ({data.evidence.length})</h3>
-            {data.evidence.length > 0 ? (
-              data.evidence.map(item => (
-                <div key={item.id} className="evidence-card">
-                  <strong>Answer Found:</strong> {item.answer}<br/>
-                  <strong>Quote:</strong> <blockquote>{item.quotes || 'No quote.'}</blockquote>
-                  <a
-                    href="#"
-                    className={`source-link ${activeLink === `${item.document_name}-${item.page_number}` ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleSourceLinkClick(item.document_name, item.page_number);
-                    }}
-                  >
-                    Source: {item.document_name.split('/').pop()} (Page: {item.page_number || 'N/A'})
-                  </a>
+            <div className="modal-details-pane">
+                <div className="final-answer-section">
+                <h3>Final Answer</h3>
+                <p className="final-answer-value">{data.final_answer || 'N/A'}</p>
                 </div>
-              ))
-            ) : (
-              <p>No specific evidence was found for this data point.</p>
-            )}
-          </div>
-          <div className="modal-pdf-pane">
-            {renderPdfViewer()}
-          </div>
-          {/* --- NEW: Modal Footer with Re-run button --- */}
+                <div className="summary-section">
+                <h3>Summary Explanation</h3>
+                <p>{data.explanation || 'No explanation provided.'}</p>
+                {data.discrepancy && data.discrepancy !== "None" && (
+                    <>
+                    <h3>Discrepancy Report</h3>
+                    <p>{data.discrepancy}</p>
+                    </>
+                )}
+                </div>
+                <h3>Evidence ({data.evidence.length})</h3>
+                {data.evidence.length > 0 ? (
+                data.evidence.map(item => (
+                    <div key={item.id} className="evidence-card">
+                    <strong>Answer Found:</strong> {item.answer}<br/>
+                    <strong>Quote:</strong> <blockquote>{item.quotes || 'No quote.'}</blockquote>
+                    <a
+                        href="#"
+                        className={`source-link ${activeLink === `${item.document_name}-${item.page_number}` ? 'active' : ''}`}
+                        onClick={(e) => {
+                        e.preventDefault();
+                        handleSourceLinkClick(item.document_name, item.page_number);
+                        }}
+                    >
+                        Source: {item.document_name.split('/').pop()} (Page: {item.page_number || 'N/A'})
+                    </a>
+                    </div>
+                ))
+                ) : (
+                <p>No specific evidence was found for this data point.</p>
+                )}
+            </div>
+            <div className="modal-pdf-pane">
+                {renderPdfViewer()}
+            </div>
+        </div>
+        {/* --- NEW: Modal Footer with Re-run button --- */}
         <div className="modal-footer">
             {rerunError && <p className="error-message" style={{margin: 0, textAlign: 'left'}}>{rerunError}</p>}
             <button className="rerun-button-single" onClick={handleRerunSingle} disabled={isRerunning}>
                 {isRerunning ? 'Processing...' : 'Re-run This Data Point'}
             </button>
-        </div>
         </div>
       </div>
     </div>
