@@ -39,7 +39,7 @@ export default async function HomePage() {
   });
 
   // --- NEW: Define a preferred order for columns ---
-  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2 (market-based)", "Scope 3"];
+  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2", "Scope 3"];
 
   // 3. --- REMOVE THE ALPHABETICAL RE-SORTING ---
   const companies = Array.from(companySet); // <-- CHANGED: Removed the .sort() to preserve the fetch order

@@ -10,7 +10,7 @@ const rerunSecret = process.env.RERUN_SECRET_KEY!;
 // Define the questions here, so they are consistent.
 const getQuestions = (year: number) => [
     `What was the company's scope 1 emissions amount in ${year}?`,
-    `What was the company's scope 2 (market-based) emissions amount in ${year}?`,
+    `What was the company's scope 2 emissions amount in ${year}?`,
     `What was the company's scope 3 emissions amount in ${year}?`,
     `What was the company's total revenue in ${year}? Rules: Revenue amount has to be company-level (not subsidiary, regional, etc.). Answer has to be specifically the total revenue amount, and has to be specifically for the year ${year}.`,
 ];
