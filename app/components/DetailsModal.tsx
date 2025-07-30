@@ -9,13 +9,20 @@ interface DetailsModalProps {
 }
 
 export default function DetailsModal({ data, onClose }: DetailsModalProps) {
-  // State to manage the PDF URL (can be a real URL or a local blob URL)
+  const router = useRouter();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  
+    // State to manage the PDF URL (can be a real URL or a local blob URL)
   const [pdfDisplayUrl, setPdfDisplayUrl] = useState<string | null>(null);
   // State to hold the original URL for the fallback button
   const [originalPdfUrl, setOriginalPdfUrl] = useState<string | null>(null);
   const [pdfPage, setPdfPage] = useState<number | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [activeLink, setActiveLink] = useState<string | null>(null);
+
+  // --- NEW state for single re-run ---
+  const [isRerunning, setIsRerunning] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
 
   // This useEffect is crucial for cleaning up blob URLs to prevent memory leaks.
   useEffect(() => {
@@ -33,6 +40,43 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  // --- NEW function to handle single re-run ---
+  const handleRerunSingle = async () => {
+    const secretKey = prompt("Please enter the secret key to re-run this analysis:");
+    if (!secretKey) return; // User cancelled
+
+    setIsRerunning(true);
+    setRerunError(null);
+
+    try {
+        const response = await fetch('/api/rerun-with-links', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                companyName: data.company_name,
+                year: data.year,
+                dataPointType: data.data_point_type,
+                // We need to construct the original question
+                questionToRerun: `What was the company's ${data.data_point_type.toLowerCase()} in ${data.year}?`,
+                sourceDocuments: JSON.parse(data.source_documents as any), // Pass original documents
+                secretKey: secretKey,
+            }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'An unknown error occurred.');
+
+        alert('Success! The data has been updated. The page will now refresh.');
+        onClose();
+        router.refresh(); // Refresh the page to show new data
+
+    } catch (err: any) {
+        setRerunError(err.message);
+    } finally {
+        setIsRerunning(false);
+    }
+  };
 
   // The new, more robust PDF loading function
   const handleSourceLinkClick = async (url: string, page: number) => {
@@ -98,12 +142,11 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
 
   return (
     <div className="modal" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-                {/* Make the title dynamic using the new column name */}
-                <h2>Details for: {data.company_name} - {data.data_point_type} ({data.year})</h2>
-                <span className="close-button" onClick={onClose}>×</span>
-            </div>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Details for: {data.company_name} - {data.data_point_type} ({data.year})</h2>
+          <span className="close-button" onClick={onClose}>×</span>
+        </div>
         <div className="modal-body">
           <div className="modal-details-pane">
             <div className="final-answer-section">
@@ -145,6 +188,13 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
           <div className="modal-pdf-pane">
             {renderPdfViewer()}
           </div>
+          {/* --- NEW: Modal Footer with Re-run button --- */}
+        <div className="modal-footer">
+            {rerunError && <p className="error-message" style={{margin: 0, textAlign: 'left'}}>{rerunError}</p>}
+            <button className="rerun-button-single" onClick={handleRerunSingle} disabled={isRerunning}>
+                {isRerunning ? 'Processing...' : 'Re-run This Data Point'}
+            </button>
+        </div>
         </div>
       </div>
     </div>
