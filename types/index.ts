@@ -13,10 +13,11 @@ export type Evidence = {
     id: number;
     company_name: string;
     year: number;
-    data_point_type: string; // The correct, generic column name
+    data_point_type: string;
     final_answer: string;
     explanation: string;
     discrepancy: string;
     evidence: Evidence[];
+    source_documents: string; // <-- ADD THIS LINE
     created_at: string;
   };
