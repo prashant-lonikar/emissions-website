@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         if (deleteError) throw new Error(`DB delete failed: ${deleteError.message}`);
 
         // 4. --- GENERATE QUESTIONS AND KEYWORDS ---
-        const questions = dataPointsToRerun.map(dp => `What was the company's ${dp.toLowerCase()} in ${year}?`);
+        const questions = dataPointsToRerun.map((dp: string) => `What was ${companyName}'s total ${dp.toLowerCase()} in ${year}? Rules: Answer has to be specifically at the overall company-level of ${companyName} (i.e. not subsidiary, regional, etc.). Answer has to be specifically the total ${dp.toLowerCase()} amount, and has to be specifically for the year ${year}.`);
         const keywords = Array.from(new Set(questions.flatMap(getKeywordsForQuestion)));
 
         // 5. --- CALL ANALYSIS ENDPOINT ---
