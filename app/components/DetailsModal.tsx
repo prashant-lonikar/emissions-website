@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { EmissionData } from '@/types'; // <-- IMPORT our central type
+import { useRouter } from 'next/navigation';
 
 interface DetailsModalProps {
   data: EmissionData;
