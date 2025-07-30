@@ -72,6 +72,7 @@ export default function EmissionsTable({ data, columns, companies, year }: Emiss
                 <RerunModal
                     companyName={rerunCompany}
                     year={year}
+                    allColumns={columns} // <-- PASS THE COLUMNS PROP
                     onClose={() => setRerunCompany(null)}
                 />
             )}

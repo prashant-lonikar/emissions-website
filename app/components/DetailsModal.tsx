@@ -91,9 +91,9 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
                 companyName: data.company_name,
                 year: data.year,
                 dataPointType: data.data_point_type,
-                // We need to construct the original question
                 questionToRerun: `What was the company's ${data.data_point_type.toLowerCase()} in ${data.year}?`,
-                sourceDocuments: JSON.parse(data.source_documents as any), // Pass original documents
+                // THE FIX IS ON THE LINE BELOW: No more 'as any' needed.
+                sourceDocuments: JSON.parse(data.source_documents), 
                 secretKey: secretKey,
             }),
         });
@@ -106,11 +106,17 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
         router.refresh(); // Refresh the page to show new data
 
     } catch (err: any) {
-        setRerunError(err.message);
+        // A more user-friendly error check
+        if (err instanceof SyntaxError) {
+             setRerunError("Error: Could not parse source documents. The data may be corrupt.");
+        } else {
+             setRerunError(err.message);
+        }
     } finally {
         setIsRerunning(false);
     }
   };
+
 
   const renderPdfViewer = () => {
     const finalUrl = (pdfState === 'error' ? originalPdfUrl : pdfDisplayUrl) + (pdfPage ? `#page=${pdfPage}` : '');

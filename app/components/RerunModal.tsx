@@ -6,15 +6,25 @@ import { useRouter } from 'next/navigation';
 interface RerunModalProps {
   companyName: string;
   year: number;
+  allColumns: string[]; // <-- NEW: Receive all possible columns
   onClose: () => void;
 }
 
-export default function RerunModal({ companyName, year, onClose }: RerunModalProps) {
+export default function RerunModal({ companyName, year, allColumns, onClose }: RerunModalProps) {
   const [links, setLinks] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  
+  // --- NEW: State to manage which data points are selected ---
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(allColumns);
+
+  const handleCheckboxChange = (column: string) => {
+    setSelectedColumns(prev => 
+      prev.includes(column) ? prev.filter(c => c !== column) : [...prev, column]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +38,11 @@ export default function RerunModal({ companyName, year, onClose }: RerunModalPro
       setIsLoading(false);
       return;
     }
+    if (selectedColumns.length === 0) {
+      setError('Please select at least one data point to re-run.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/rerun-with-links', {
@@ -38,18 +53,16 @@ export default function RerunModal({ companyName, year, onClose }: RerunModalPro
           year,
           customLinks,
           secretKey,
+          dataPointsToRerun: selectedColumns, // <-- Pass the selected columns
         }),
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'An unknown error occurred.');
-      }
+      if (!response.ok) throw new Error(result.error || 'An unknown error occurred.');
       
       alert(`Success: ${result.message}`);
       onClose();
-      router.refresh(); // This is the key to seeing the new data!
+      router.refresh();
       
     } catch (err: any) {
       setError(err.message);
@@ -66,31 +79,39 @@ export default function RerunModal({ companyName, year, onClose }: RerunModalPro
           <span className="close-button" onClick={onClose}>×</span>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <p>This will delete all existing data for this company and year and replace it with a new analysis using only the links below.</p>
+          <p>Provide new links and select which data points to delete and re-analyze.</p>
+          
+          {/* --- NEW CHECKBOX SECTION --- */}
           <div className="form-group">
-            <label htmlFor="secret-key">Secret Key</label>
-            <input
-              id="secret-key"
-              type="password"
-              value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value)}
-              required
-            />
+            <label>Data Points to Re-run</label>
+            <div className="checkbox-group">
+              {allColumns.map(column => (
+                <div key={column} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id={`cb-${column}`}
+                    checked={selectedColumns.includes(column)}
+                    onChange={() => handleCheckboxChange(column)}
+                  />
+                  <label htmlFor={`cb-${column}`}>{column}</label>
+                </div>
+              ))}
+            </div>
           </div>
+
           <div className="form-group">
             <label htmlFor="links-textarea">PDF URLs (one per line)</label>
-            <textarea
-              id="links-textarea"
-              rows={8}
-              value={links}
-              onChange={(e) => setLinks(e.target.value)}
-              placeholder="https://example.com/sustainability-report.pdf"
-              required
-            ></textarea>
+            <textarea id="links-textarea" rows={6} value={links} onChange={(e) => setLinks(e.target.value)} required />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="secret-key">Secret Key</label>
+            <input id="secret-key" type="password" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} required />
+          </div>
+
           {error && <p className="error-message">{error}</p>}
           <button type="submit" disabled={isLoading} className="submit-button">
-            {isLoading ? 'Processing...' : 'Delete and Re-run Analysis'}
+            {isLoading ? 'Processing...' : 'Delete and Re-run Selected'}
           </button>
         </form>
       </div>
