@@ -1,27 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-
-// Define the types for our data, including the nested evidence
-type Evidence = {
-  id: number;
-  answer: string;
-  explanation: string;
-  quotes: string;
-  page_number: number;
-  document_name: string;
-};
-
-type EmissionData = {
-  id: number;
-  company_name: string;
-  year: number;
-  data_point_type: string; // <-- CHANGED
-  final_answer: string;
-  explanation:string;
-  discrepancy: string;
-  evidence: Evidence[];
-};
+import { EmissionData } from '@/types'; // <-- IMPORT our central type
 
 interface DetailsModalProps {
   data: EmissionData;
