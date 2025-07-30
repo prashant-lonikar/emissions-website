@@ -16,7 +16,7 @@ type EmissionData = {
   id: number;
   company_name: string;
   year: number;
-  scope_type: string;
+  data_point_type: string; // <-- CHANGED
   final_answer: string;
   explanation: string;
   discrepancy: string;
@@ -36,7 +36,7 @@ export default async function HomePage() {
   const { data: emissions, error } = await supabase
     .from('emissions_data')
     .select('*, evidence(*)')
-    .order('created_at', { ascending: true }); // <-- CHANGED: Sort by creation time, oldest first
+    .order('created_at', { ascending: true });
 
   if (error) {
     return <p>Error loading data: {error.message}</p>;
@@ -45,36 +45,48 @@ export default async function HomePage() {
   // 2. Process the flat data into a pivot-table structure
   const processedData: ProcessedData = new Map();
   const companySet = new Set<string>();
-  const scopeSet = new Set<string>();
+  const columnSet = new Set<string>(); // <-- Renamed from scopeSet for clarity
 
   (emissions as EmissionData[]).forEach(item => {
     // Because the 'emissions' array is now sorted by creation time,
     // companies will be added to this Set in the correct order.
     companySet.add(item.company_name); 
-    scopeSet.add(item.scope_type);
+    columnSet.add(item.data_point_type); // <-- Use the new column
 
     if (!processedData.has(item.company_name)) {
       processedData.set(item.company_name, {});
     }
-    processedData.get(item.company_name)![item.scope_type] = item;
+    processedData.get(item.company_name)![item.data_point_type] = item; // <-- Use the new column
   });
+
+  // --- NEW: Define a preferred order for columns ---
+  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2 (market-based)", "Scope 3"];
 
   // 3. --- REMOVE THE ALPHABETICAL RE-SORTING ---
   const companies = Array.from(companySet); // <-- CHANGED: Removed the .sort() to preserve the fetch order
-  const scopes = ["Scope 1", "Scope 2", "Scope 3"].filter(s => scopeSet.has(s)); // Maintain a consistent column order
+  // Sort the discovered columns according to our preferred order
+  const columns = Array.from(columnSet).sort((a, b) => {
+    const indexA = preferredColumnOrder.indexOf(a);
+    const indexB = preferredColumnOrder.indexOf(b);
+    // If a column isn't in our preferred list, push it to the end
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+});
 
   // Get the year from the first data point, or default to the current year
   const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear();
 
   return (
     <main className="container">
-      <h1>Company Emissions Data</h1>
+      <h1>Company Emissions & Revenue Data</h1> {/* <-- Updated title */}
       <p>Click on a cell to view detailed evidence and source documents.</p>
       
       {(!emissions || emissions.length === 0) ? (
         <p>No emissions data found yet. Please run the data collection workflow.</p>
       ) : (
-        <EmissionsTable data={processedData} scopes={scopes} companies={companies} year={year} />
+        // Pass the generic 'columns' prop instead of 'scopes'
+        <EmissionsTable data={processedData} columns={columns} companies={companies} year={year} />
       )}
     </main>
   );

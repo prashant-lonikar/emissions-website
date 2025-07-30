@@ -29,13 +29,13 @@ type ProcessedData = Map<string, { [scope: string]: EmissionData | undefined }>;
 
 interface EmissionsTableProps {
   data: ProcessedData;
-  scopes: string[];
+  columns: string[]; // <-- CHANGED from scopes
   companies: string[];
   year: number; 
 }
 
 // THE FIX IS ON THE LINE BELOW
-export default function EmissionsTable({ data, scopes, companies, year }: EmissionsTableProps) {
+export default function EmissionsTable({ data, columns, companies, year }: EmissionsTableProps) {
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
   const [rerunCompany, setRerunCompany] = useState<string | null>(null);
 
@@ -53,7 +53,7 @@ export default function EmissionsTable({ data, scopes, companies, year }: Emissi
           <thead>
             <tr>
               <th>Company</th>
-              {scopes.map(scope => <th key={scope}>{scope}</th>)}
+              {columns.map(col => <th key={col}>{col}</th>)}
               <th>Actions</th>
             </tr>
           </thead>
@@ -61,14 +61,14 @@ export default function EmissionsTable({ data, scopes, companies, year }: Emissi
             {companies.map(companyName => (
               <tr key={companyName}>
                 <td className="company-name">{companyName}</td>
-                {scopes.map(scope => {
-                  const cellData = data.get(companyName)?.[scope];
+                {columns.map(col => { 
+                const cellData = data.get(companyName)?.[col];
                   const hasValue = cellData && cellData.final_answer;
                   return (
                     <td
-                      key={scope}
+                      key={col}
                       className={hasValue ? 'clickable-cell' : 'empty-cell'}
-                      onClick={() => hasValue && handleCellClick(companyName, scope)}
+                      onClick={() => hasValue && handleCellClick(companyName, col)}
                     >
                       {hasValue ? cellData.final_answer : 'N/A'}
                     </td>

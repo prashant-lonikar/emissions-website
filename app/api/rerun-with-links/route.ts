@@ -12,6 +12,7 @@ const getQuestions = (year: number) => [
     `What was the company's scope 1 emissions amount in ${year}?`,
     `What was the company's scope 2 (market-based) emissions amount in ${year}?`,
     `What was the company's scope 3 emissions amount in ${year}?`,
+    `What was the company's total revenue in ${year}? Rules: Revenue amount has to be company-level (not subsidiary, regional, etc.). Answer has to be specifically the total revenue amount, and has to be specifically for the year ${year}.`,
 ];
 
 export async function POST(request: Request) {
@@ -68,21 +69,26 @@ export async function POST(request: Request) {
         }
         
         console.log(`[API] Saving ${analysisResults.length} new records to Supabase...`);
-        for (const result of analysisResults) {
-            // This is copied from your python script's logic to ensure data consistency
-            const question = result.question || "";
+    for (const result of analysisResults) {
+        // Use the same parsing logic as the python script
+        const question = (result.question || "").toLowerCase();
+        let data_point_type = "Unknown";
+        if (question.includes('revenue')) {
+            data_point_type = "Revenue";
+        } else {
             const scopeMatch = question.match(/(scope\s*\d+)/i);
-            const scopeType = scopeMatch ? scopeMatch[1].charAt(0).toUpperCase() + scopeMatch[1].slice(1) : "Unknown";
+            if (scopeMatch) data_point_type = scopeMatch[1].title();
+        }
 
-            const mainRecord = {
-                company_name: companyName,
-                year: year,
-                scope_type: scopeType,
-                final_answer: result.summary?.final_answer,
-                explanation: result.summary?.explanation,
-                discrepancy: result.summary?.discrepancy,
-                source_documents: result.source_documents || [],
-            };
+        const mainRecord = {
+            company_name: companyName,
+            year: year,
+            data_point_type: data_point_type, // <-- CHANGED
+            final_answer: result.summary?.final_answer,
+            explanation: result.summary?.explanation,
+            discrepancy: result.summary?.discrepancy,
+            source_documents: result.source_documents || [],
+        };
 
             const { data: newEmissionData, error: insertError } = await supabase
                 .from('emissions_data')

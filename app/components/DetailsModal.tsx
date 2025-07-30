@@ -16,7 +16,7 @@ type EmissionData = {
   id: number;
   company_name: string;
   year: number;
-  scope_type: string;
+  data_point_type: string; // <-- CHANGED
   final_answer: string;
   explanation:string;
   discrepancy: string;
@@ -118,11 +118,12 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
 
   return (
     <div className="modal" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Details for: {data.company_name} - {data.scope_type} ({data.year})</h2>
-          <span className="close-button" onClick={onClose}>×</span>
-        </div>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+                {/* Make the title dynamic using the new column name */}
+                <h2>Details for: {data.company_name} - {data.data_point_type} ({data.year})</h2>
+                <span className="close-button" onClick={onClose}>×</span>
+            </div>
         <div className="modal-body">
           <div className="modal-details-pane">
             <div className="final-answer-section">
