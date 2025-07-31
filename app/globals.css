@@ -194,9 +194,10 @@ p { font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem; }
 }
 
 .rerun-item {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto 1fr; /* Checkbox column is auto-sized, details column takes the rest */
   gap: 1rem;
+  align-items: start; /* Aligns items to the top of their grid cell */
 }
 
 .rerun-item:not(:last-child) {
