@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface RerunItem {
+  dataPoint: string;
+  question: string;
+  isSelected: boolean;
+}
 
 interface RerunModalProps {
   companyName: string;
   year: number;
-  allColumns: string[]; // <-- NEW: Receive all possible columns
+  allColumns: string[];
   onClose: () => void;
 }
+
+// Helper to generate the default questions
+const generateDefaultQuestion = (dataPoint: string, companyName: string, year: number): string => {
+  return `What was ${companyName}'s ${dataPoint.toLowerCase()} in ${year}?`;
+};
 
 export default function RerunModal({ companyName, year, allColumns, onClose }: RerunModalProps) {
   const [links, setLinks] = useState('');
@@ -17,13 +28,24 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   
-  // --- NEW: State to manage which data points are selected ---
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(allColumns);
+  // --- NEW, more powerful state for the form ---
+  const [rerunItems, setRerunItems] = useState<RerunItem[]>([]);
 
-  const handleCheckboxChange = (column: string) => {
-    setSelectedColumns(prev => 
-      prev.includes(column) ? prev.filter(c => c !== column) : [...prev, column]
-    );
+  // Initialize the state when the component mounts
+  useEffect(() => {
+    setRerunItems(allColumns.map(column => ({
+      dataPoint: column,
+      question: generateDefaultQuestion(column, companyName, year),
+      isSelected: true, // Select all by default
+    })));
+  }, [allColumns, companyName, year]);
+
+  const handleCheckboxChange = (index: number) => {
+    setRerunItems(prev => prev.map((item, i) => i === index ? { ...item, isSelected: !item.isSelected } : item));
+  };
+
+  const handleQuestionChange = (index: number, newQuestion: string) => {
+    setRerunItems(prev => prev.map((item, i) => i === index ? { ...item, question: newQuestion } : item));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,13 +54,14 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
     setError(null);
 
     const customLinks = links.split('\n').map(link => link.trim()).filter(Boolean);
+    const selectedItems = rerunItems.filter(item => item.isSelected);
 
     if (customLinks.length === 0) {
       setError('Please provide at least one valid URL.');
       setIsLoading(false);
       return;
     }
-    if (selectedColumns.length === 0) {
+    if (selectedItems.length === 0) {
       setError('Please select at least one data point to re-run.');
       setIsLoading(false);
       return;
@@ -53,7 +76,8 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
           year,
           customLinks,
           secretKey,
-          dataPointsToRerun: selectedColumns, // <-- Pass the selected columns
+          // --- Send the new, more detailed payload ---
+          rerunItems: selectedItems.map(({ dataPoint, question }) => ({ dataPoint, question })),
         }),
       });
 
@@ -73,27 +97,36 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
 
   return (
     <div className="modal" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '600px', height: 'auto' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '700px', height: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Re-run for {companyName} ({year})</h2>
           <span className="close-button" onClick={onClose}>×</span>
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <p>Provide new links and select which data points to delete and re-analyze.</p>
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
+          <p>Provide links and select/edit the questions for the data points you want to re-run.</p>
           
-          {/* --- NEW CHECKBOX SECTION --- */}
+          {/* --- NEW EDITABLE LIST --- */}
           <div className="form-group">
-            <label>Data Points to Re-run</label>
-            <div className="checkbox-group">
-              {allColumns.map(column => (
-                <div key={column} className="checkbox-item">
+            <label>Data Points & Questions to Re-run</label>
+            <div className="rerun-item-list">
+              {rerunItems.map((item, index) => (
+                <div key={item.dataPoint} className="rerun-item">
                   <input
                     type="checkbox"
-                    id={`cb-${column}`}
-                    checked={selectedColumns.includes(column)}
-                    onChange={() => handleCheckboxChange(column)}
+                    id={`cb-${item.dataPoint}`}
+                    className="rerun-item-checkbox"
+                    checked={item.isSelected}
+                    onChange={() => handleCheckboxChange(index)}
                   />
-                  <label htmlFor={`cb-${column}`}>{column}</label>
+                  <div className="rerun-item-details">
+                    <label htmlFor={`cb-${item.dataPoint}`}>{item.dataPoint}</label>
+                    <textarea
+                      rows={2}
+                      value={item.question}
+                      onChange={(e) => handleQuestionChange(index, e.target.value)}
+                      disabled={!item.isSelected}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -101,7 +134,7 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
 
           <div className="form-group">
             <label htmlFor="links-textarea">PDF URLs (one per line)</label>
-            <textarea id="links-textarea" rows={6} value={links} onChange={(e) => setLinks(e.target.value)} required />
+            <textarea id="links-textarea" rows={4} value={links} onChange={(e) => setLinks(e.target.value)} required />
           </div>
 
           <div className="form-group">

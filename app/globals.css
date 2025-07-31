@@ -185,31 +185,61 @@ p { font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem; }
   cursor: not-allowed;
 }
 
-/* --- Styles for Checkbox Group in Modal --- */
-.checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+/* --- Styles for Editable Re-run List in Modal --- */
+.rerun-item-list {
   background-color: #f8f9fa;
   padding: 1rem;
   border-radius: 4px;
   border: 1px solid #dee2e6;
 }
-.checkbox-item {
+
+.rerun-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 1rem;
 }
-.checkbox-item input[type="checkbox"] {
-  margin-right: 0.5rem;
-  width: 1rem;
-  height: 1rem;
+
+.rerun-item:not(:last-child) {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.rerun-item-checkbox {
+  margin-top: 0.5rem; /* Align with the label text */
+  width: 1.2rem;
+  height: 1.2rem;
+  flex-shrink: 0;
+}
+
+.rerun-item-details {
+  flex-grow: 1;
+}
+
+.rerun-item-details label {
+  font-weight: 600;
   cursor: pointer;
+  display: block; /* Make the whole label clickable for the checkbox */
+  margin-bottom: 0.25rem;
 }
-.checkbox-item label {
-  margin-bottom: 0;
-  font-weight: normal;
-  cursor: pointer;
+
+.rerun-item-details textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  resize: vertical;
 }
+
+.rerun-item-details textarea:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 
 
 .value-container.clickable {
