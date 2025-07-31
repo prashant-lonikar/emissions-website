@@ -18,7 +18,7 @@ interface RerunModalProps {
 
 // Helper to generate the default questions
 const generateDefaultQuestion = (dataPoint: string, companyName: string, year: number): string => {
-  return `What was ${companyName}'s ${dataPoint.toLowerCase()} in ${year}?`;
+  return `What was ${companyName}'s total ${dataPoint.toLowerCase()} in ${year}? Rules: Answer has to be specifically at the overall company-level of ${companyName} (i.e. not subsidiary, regional, etc.). Answer has to be specifically the total ${dataPoint.toLowerCase()} amount, and has to be specifically for the year ${year}.`;
 };
 
 export default function RerunModal({ companyName, year, allColumns, onClose }: RerunModalProps) {
