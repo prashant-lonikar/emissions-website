@@ -210,3 +210,48 @@ p { font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem; }
   font-weight: normal;
   cursor: pointer;
 }
+
+/* --- Styles for Data Cell & Feedback --- */
+.data-cell {
+  padding: 0;
+  vertical-align: top;
+}
+.value-container.clickable {
+  padding: 12px 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.value-container.clickable:hover {
+  background-color: #eef7ff;
+}
+.feedback-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-top: 1px solid #f0f0f0;
+  background-color: #f8f9fa;
+}
+.thumb-icons {
+  display: flex;
+  gap: 8px;
+}
+.thumb {
+  cursor: pointer;
+  transition: transform 0.1s ease-in-out;
+}
+.thumb:hover {
+  transform: scale(1.3);
+}
+.approval-rating {
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+}
+.approval-rating.gray { background-color: #adb5bd; }
+.approval-rating.green { background-color: #28a745; }
+.approval-rating.orange { background-color: #fd7e14; }
+.approval-rating.red { background-color: #dc3545; }

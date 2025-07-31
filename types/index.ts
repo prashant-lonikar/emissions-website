@@ -20,4 +20,6 @@ export type Evidence = {
     evidence: Evidence[];
     source_documents: string; // <-- ADD THIS LINE
     created_at: string;
+    thumbs_up_count: number;
+    thumbs_down_count: number;
   };
