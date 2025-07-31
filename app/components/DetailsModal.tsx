@@ -35,7 +35,6 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
   }, [onClose]);
 
   const handleSourceLinkClick = async (url: string, page: number) => {
-    // ... (This function is unchanged from our previous correct version)
     if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
       URL.revokeObjectURL(pdfDisplayUrl);
     }
@@ -58,7 +57,6 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
   };
 
   const renderPdfViewer = () => {
-    // ... (This function is also unchanged)
     const finalUrl = (pdfState === 'error' ? originalPdfUrl : pdfDisplayUrl) + (pdfPage ? `#page=${pdfPage}` : '');
     switch (pdfState) {
       case 'loading':
@@ -104,12 +102,14 @@ export default function DetailsModal({ data, onClose }: DetailsModalProps) {
                 {data.evidence.length > 0 ? (
                 data.evidence.map(item => (
                     <div key={item.id} className="evidence-card">
-                    <strong>Answer Found:</strong> {item.answer}<br/>
-                    <strong>Quote:</strong> <blockquote>{item.quotes || 'No quote.'}</blockquote>
-                    <a href="#" className={`source-link ${activeLink === `${item.document_name}-${item.page_number}` ? 'active' : ''}`}
-                        onClick={(e) => { e.preventDefault(); handleSourceLinkClick(item.document_name, item.page_number); }}>
-                        Source: {item.document_name.split('/').pop()} (Page: {item.page_number || 'N/A'})
-                    </a>
+                        <strong>Answer Found:</strong> {item.answer}<br/>
+                        {/* --- THIS IS THE NEWLY ADDED LINE --- */}
+                        <strong>Explanation:</strong> {item.explanation || 'N/A'}<br/>
+                        <strong>Quote:</strong> <blockquote>{item.quotes || 'No quote.'}</blockquote>
+                        <a href="#" className={`source-link ${activeLink === `${item.document_name}-${item.page_number}` ? 'active' : ''}`}
+                            onClick={(e) => { e.preventDefault(); handleSourceLinkClick(item.document_name, item.page_number); }}>
+                            Source: {item.document_name.split('/').pop()} (Page: {item.page_number || 'N/A'})
+                        </a>
                     </div>
                 ))
                 ) : (
