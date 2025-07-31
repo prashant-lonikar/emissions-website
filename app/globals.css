@@ -211,11 +211,7 @@ p { font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem; }
   cursor: pointer;
 }
 
-/* --- Styles for Data Cell & Feedback --- */
-.data-cell {
-  padding: 0;
-  vertical-align: top;
-}
+
 .value-container.clickable {
   padding: 12px 15px;
   font-weight: 500;
@@ -225,33 +221,85 @@ p { font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem; }
 .value-container.clickable:hover {
   background-color: #eef7ff;
 }
-.feedback-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  font-size: 0.8rem;
-  border-top: 1px solid #f0f0f0;
-  background-color: #f8f9fa;
-}
-.thumb-icons {
-  display: flex;
-  gap: 8px;
-}
-.thumb {
-  cursor: pointer;
-  transition: transform 0.1s ease-in-out;
-}
+
 .thumb:hover {
   transform: scale(1.3);
 }
-.approval-rating {
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: white;
+/* --- NEW Styles for Data Cell & Feedback Overlays --- */
+td.data-cell {
+  position: relative; /* Crucial for positioning overlays */
+  padding: 12px 15px; /* Restore padding to the cell itself */
 }
-.approval-rating.gray { background-color: #adb5bd; }
-.approval-rating.green { background-color: #28a745; }
-.approval-rating.orange { background-color: #fd7e14; }
-.approval-rating.red { background-color: #dc3545; }
+
+/* The main value container - no major changes */
+.value-container.clickable {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* The Approval Rating Dot (Top Right) */
+.approval-rating-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.1);
+  cursor: help;
+}
+/* Color coding for the dot */
+.approval-rating-indicator.gray { background-color: #adb5bd; }
+.approval-rating-indicator.green { background-color: #28a745; }
+.approval-rating-indicator.orange { background-color: #fd7e14; }
+.approval-rating-indicator.red { background-color: #dc3545; }
+
+
+/* Tooltip for the dot on hover */
+.approval-rating-indicator:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 150%; /* Position above the dot */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Thumbs Icons container (Bottom Right, hidden by default) */
+.feedback-icons-on-hover {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; /* Not clickable when hidden */
+}
+
+/* Show the icons when hovering over the PARENT CELL */
+td.data-cell:hover .feedback-icons-on-hover {
+  opacity: 1;
+  pointer-events: auto; /* Make clickable when visible */
+}
+
+/* Styling for the SVG icons */
+.thumb-icon {
+  cursor: pointer;
+  fill: #fff; /* White icons look good on the dark background */
+  transition: transform 0.1s ease-in-out;
+}
+.thumb-icon:hover {
+  transform: scale(1.2);
+  fill: #a2d2ff; /* A light blue hover effect */
+}
