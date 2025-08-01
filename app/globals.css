@@ -334,3 +334,30 @@ td.data-cell:hover .feedback-icons-on-hover {
   transform: scale(1.2);
   fill: #a2d2ff; /* A light blue hover effect */
 }
+
+/* --- Styles for Main Page Header --- */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 1rem;
+}
+.main-header h1 {
+  margin-bottom: 0;
+}
+.add-company-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.add-company-btn:hover {
+  background-color: #0056b3;
+}

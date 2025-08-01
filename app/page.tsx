@@ -1,72 +1,93 @@
 import { createClient } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
 import EmissionsTable from './components/EmissionsTable';
+import AddCompanyModal from './components/AddCompanyModal';
 import './globals.css';
 import { EmissionData } from '@/types'; // <-- IMPORT our central type
 
 type ProcessedData = Map<string, { [data_point_type: string]: EmissionData | undefined }>;
 
 // --- Main Page Component ---
-export default async function HomePage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+export default function HomePage() {
+  const [emissions, setEmissions] = useState<EmissionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false); // <-- ADD STATE
 
-  // 1. --- CHANGE THE SORT ORDER IN THE QUERY ---
-  const { data: emissions, error } = await supabase
-    .from('emissions_data')
-    .select('*, evidence(*)')
-    .order('created_at', { ascending: true });
+  useEffect(() => {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-  if (error) {
-    return <p>Error loading data: {error.message}</p>;
+    const fetchData = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('emissions_data')
+        .select('*, evidence(*)')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching data:", error);
+      } else {
+        setEmissions(data as EmissionData[]);
+      }
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, []); // Empty dependency array means this runs once on mount
+
+  if (isLoading) {
+    return <p className="container">Loading data...</p>;
   }
 
-  // 2. Process the flat data into a pivot-table structure
-  const processedData: ProcessedData = new Map();
+  // --- Processing logic now lives inside the component ---
+  const processedData: Map<string, { [column: string]: EmissionData | undefined }> = new Map();
   const companySet = new Set<string>();
-  const columnSet = new Set<string>(); // <-- Renamed from scopeSet for clarity
+  const columnSet = new Set<string>();
 
-  (emissions as EmissionData[]).forEach(item => {
-    // Because the 'emissions' array is now sorted by creation time,
-    // companies will be added to this Set in the correct order.
-    companySet.add(item.company_name); 
-    columnSet.add(item.data_point_type); // <-- Use the new column
-
+  emissions.forEach(item => {
+    companySet.add(item.company_name);
+    if (item.data_point_type !== 'Init') { // Don't show 'Init' as a column
+        columnSet.add(item.data_point_type);
+    }
     if (!processedData.has(item.company_name)) {
       processedData.set(item.company_name, {});
     }
-    processedData.get(item.company_name)![item.data_point_type] = item; // <-- Use the new column
+    processedData.get(item.company_name)![item.data_point_type] = item;
+  });
+  
+  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2 (Market-based)", "Scope 3"];
+  const companies = Array.from(companySet);
+  const columns = Array.from(columnSet).sort((a, b) => {
+      const indexA = preferredColumnOrder.indexOf(a);
+      const indexB = preferredColumnOrder.indexOf(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
   });
 
-  // --- NEW: Define a preferred order for columns ---
-  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2", "Scope 3"];
-
-  // 3. --- REMOVE THE ALPHABETICAL RE-SORTING ---
-  const companies = Array.from(companySet); // <-- CHANGED: Removed the .sort() to preserve the fetch order
-  // Sort the discovered columns according to our preferred order
-  const columns = Array.from(columnSet).sort((a, b) => {
-    const indexA = preferredColumnOrder.indexOf(a);
-    const indexB = preferredColumnOrder.indexOf(b);
-    // If a column isn't in our preferred list, push it to the end
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    return indexA - indexB;
-});
-
-  // Get the year from the first data point, or default to the current year
   const year = emissions.length > 0 ? emissions[0].year : new Date().getFullYear();
 
   return (
     <main className="container">
-      <h1>Company Emissions & Revenue Data</h1> {/* <-- Updated title */}
+      <div className="main-header">
+        <h1>Company Emissions & Revenue Data</h1>
+        {/* --- ADD THE NEW BUTTON --- */}
+        <button className="add-company-btn" onClick={() => setIsAddModalOpen(true)}>
+          + Add Missing Company
+        </button>
+      </div>
       <p>Click on a cell to view detailed evidence and source documents.</p>
       
-      {(!emissions || emissions.length === 0) ? (
-        <p>No emissions data found yet. Please run the data collection workflow.</p>
+      {(emissions.length === 0) ? (
+        <p>No data found yet. Run the data collection workflow or add a company manually.</p>
       ) : (
-        // Pass the generic 'columns' prop instead of 'scopes'
         <EmissionsTable data={processedData} columns={columns} companies={companies} year={year} />
       )}
+
+      {/* --- RENDER THE NEW MODAL --- */}
+      {isAddModalOpen && <AddCompanyModal onClose={() => setIsAddModalOpen(false)} />}
     </main>
   );
 }
