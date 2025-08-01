@@ -66,7 +66,7 @@ export default function HomePage() {
     processedData.get(item.company_name)![item.data_point_type] = item;
   });
   
-  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2 (Market-based)", "Scope 3"];
+  const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2", "Scope 3"];
   const companies = Array.from(companySet);
   const columns = Array.from(columnSet).sort((a, b) => {
       const indexA = preferredColumnOrder.indexOf(a);
