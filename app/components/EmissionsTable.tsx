@@ -1,40 +1,33 @@
 "use client";
 
-import React, { useState } from 'react'; // <-- THIS IS THE FIX
+import React, { useState, useMemo } from 'react';
 import { EmissionData } from '@/types';
 import DetailsModal from './DetailsModal';
 import RerunModal from './RerunModal';
 import DataCell from './DataCell';
-import { ProcessedData } from '../page'; // Import the new type from page.tsx
 
 interface EmissionsTableProps {
-  data: ProcessedData;
+  allData: EmissionData[];
   columns: string[];
-  companies: string[];
 }
 
-export default function EmissionsTable({ data, columns, companies }: EmissionsTableProps) {
+export default function EmissionsTable({ allData, columns }: EmissionsTableProps) {
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
   const [rerunCompany, setRerunCompany] = useState<string | null>(null);
-  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
 
-  const toggleCompanyExpansion = (companyName: string) => {
-    setExpandedCompanies(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(companyName)) {
-        newSet.delete(companyName);
-      } else {
-        newSet.add(companyName);
-      }
-      return newSet;
+  // useMemo will group the data only when allData changes, improving performance
+  const groupedData = useMemo(() => {
+    const map = new Map<string, { [year: number]: { [data_point_type: string]: EmissionData } }>();
+    allData.forEach(item => {
+      if (!map.has(item.company_name)) map.set(item.company_name, {});
+      const companyData = map.get(item.company_name)!;
+      if (!companyData[item.year]) companyData[item.year] = {};
+      companyData[item.year][item.data_point_type] = item;
     });
-  };
+    return map;
+  }, [allData]);
 
-  const handleCellClick = (dataPoint: EmissionData | undefined) => {
-    if (dataPoint) {
-      setSelectedData(dataPoint);
-    }
-  };
+  const companies = Array.from(groupedData.keys());
 
   return (
     <>
@@ -43,64 +36,49 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
           <thead>
             <tr>
               <th>Company</th>
+              <th>Year</th> {/* <-- NEW YEAR COLUMN */}
               {columns.map(col => <th key={col}>{col}</th>)}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {companies.map(companyName => {
-              const companyDataByYear = data.get(companyName);
-              if (!companyDataByYear) return null;
+              const companyDataByYear = groupedData.get(companyName)!;
+              const years = Object.keys(companyDataByYear).map(Number).sort((a,b) => b-a);
+              const yearCount = years.length;
 
-              const years = Object.keys(companyDataByYear).map(Number).sort((a,b) => b-a); // [2023, 2022, ...]
-              const latestYear = years[0];
-              const historicalYears = years.slice(1);
-              const isExpanded = expandedCompanies.has(companyName);
+              return years.map((year, yearIndex) => (
+                <tr key={`${companyName}-${year}`}>
+                  {/* Render Company Name and Actions only for the FIRST row of the group */}
+                  {yearIndex === 0 && (
+                    <>
+                      <td className="company-name-cell" rowSpan={yearCount}>
+                        {companyName}
+                      </td>
+                    </>
+                  )}
+                  {/* Always render the Year column */}
+                  <td className="year-cell">{year}</td>
+                  
+                  {/* Always render the data point columns */}
+                  {columns.map(col => (
+                    <DataCell
+                      key={`${companyName}-${year}-${col}`}
+                      cellData={companyDataByYear[year]?.[col]}
+                      onOpenDetails={() => companyDataByYear[year]?.[col] && setSelectedData(companyDataByYear[year]?.[col]!)}
+                    />
+                  ))}
 
-              return (
-                // Use React.Fragment to group the main row and sub-rows
-                <React.Fragment key={companyName}>
-                  {/* --- Main Row for the Latest Year --- */}
-                  <tr className="main-row">
-                    <td className="company-name">
-                      <span className="expand-icon" onClick={() => toggleCompanyExpansion(companyName)}>
-                        {historicalYears.length > 0 ? (isExpanded ? '▼' : '▶') : ''}
-                      </span>
-                      {companyName}
-                      <span className="year-tag">{latestYear}</span>
-                    </td>
-                    {columns.map(col => (
-                      <DataCell
-                        key={`${companyName}-${latestYear}-${col}`}
-                        cellData={companyDataByYear[latestYear]?.[col]}
-                        onOpenDetails={() => handleCellClick(companyDataByYear[latestYear]?.[col])}
-                      />
-                    ))}
-                    <td className="actions-cell">
+                  {/* Render Actions only for the FIRST row of the group */}
+                  {yearIndex === 0 && (
+                    <td className="actions-cell" rowSpan={yearCount}>
                       <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
                         Re-run...
                       </button>
                     </td>
-                  </tr>
-                  
-                  {/* --- Historical Sub-rows (conditionally rendered) --- */}
-                  {isExpanded && historicalYears.map(year => (
-                    <tr key={`${companyName}-${year}`} className="sub-row">
-                      <td className="sub-row-year">
-                        - {year}
-                      </td>
-                      {columns.map(col => (
-                        <DataCell
-                          key={`${companyName}-${year}-${col}`}
-                          cellData={companyDataByYear[year]?.[col]}
-                          onOpenDetails={() => handleCellClick(companyDataByYear[year]?.[col])}
-                        />
-                      ))}
-                      <td></td>{/* Empty cell for Actions column */}
-                    </tr>
-                  ))}
-                </React.Fragment>
-              );
+                  )}
+                </tr>
+              ));
             })}
           </tbody>
         </table>
@@ -111,8 +89,7 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
       {rerunCompany && (
         <RerunModal 
           companyName={rerunCompany}
-          // The Rerun modal works on a per-year basis, so we pass the latest year
-          year={data.get(rerunCompany) ? Math.max(...Object.keys(data.get(rerunCompany)!).map(Number)) : new Date().getFullYear()}
+          year={Math.max(...Object.keys(groupedData.get(rerunCompany)!).map(Number))}
           allColumns={columns}
           onClose={() => setRerunCompany(null)} 
         />

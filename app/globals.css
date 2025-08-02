@@ -367,30 +367,22 @@ td.data-cell:hover .feedback-icons-on-hover {
   align-items: center;
   gap: 0.5rem;
 }
-.expand-icon {
-  cursor: pointer;
-  font-size: 0.8em;
-  width: 1em; /* Reserve space */
+/* --- UPDATED & NEW Styles for Rowspan Table --- */
+.emissions-table .company-name-cell,
+.emissions-table .actions-cell {
+  vertical-align: middle; /* This is key for rowspan cells */
   text-align: center;
-  user-select: none; /* Prevent text selection */
-  color: #007bff;
 }
-.year-tag {
-  font-size: 0.75rem;
-  font-weight: 600;
-  background-color: #e9ecef;
-  color: #6c757d;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.sub-row {
+
+.emissions-table .company-name-cell {
+  font-weight: bold;
   background-color: #f8f9fa;
+  min-width: 150px; /* Give company names some space */
 }
-.sub-row td {
-  border-color: #e9ecef; /* Lighter borders for sub-rows */
-}
-.sub-row-year {
-  padding-left: 2.5rem !important; /* Indent the year label */
+
+.emissions-table .year-cell {
   font-weight: 600;
+  text-align: center;
   color: #6c757d;
+  background-color: #fdfdfe; /* A slightly off-white */
 }
