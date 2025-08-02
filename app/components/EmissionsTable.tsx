@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react'; // <-- THIS IS THE FIX
 import { EmissionData } from '@/types';
 import DetailsModal from './DetailsModal';
 import RerunModal from './RerunModal';
@@ -28,6 +28,12 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
       }
       return newSet;
     });
+  };
+
+  const handleCellClick = (dataPoint: EmissionData | undefined) => {
+    if (dataPoint) {
+      setSelectedData(dataPoint);
+    }
   };
 
   return (
@@ -58,7 +64,7 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
                   <tr className="main-row">
                     <td className="company-name">
                       <span className="expand-icon" onClick={() => toggleCompanyExpansion(companyName)}>
-                        {isExpanded ? '▼' : '▶'}
+                        {historicalYears.length > 0 ? (isExpanded ? '▼' : '▶') : ''}
                       </span>
                       {companyName}
                       <span className="year-tag">{latestYear}</span>
@@ -67,7 +73,7 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
                       <DataCell
                         key={`${companyName}-${latestYear}-${col}`}
                         cellData={companyDataByYear[latestYear]?.[col]}
-                        onOpenDetails={() => companyDataByYear[latestYear]?.[col] && setSelectedData(companyDataByYear[latestYear]?.[col]!)}
+                        onOpenDetails={() => handleCellClick(companyDataByYear[latestYear]?.[col])}
                       />
                     ))}
                     <td className="actions-cell">
@@ -87,7 +93,7 @@ export default function EmissionsTable({ data, columns, companies }: EmissionsTa
                         <DataCell
                           key={`${companyName}-${year}-${col}`}
                           cellData={companyDataByYear[year]?.[col]}
-                          onOpenDetails={() => companyDataByYear[year]?.[col] && setSelectedData(companyDataByYear[year]?.[col]!)}
+                          onOpenDetails={() => handleCellClick(companyDataByYear[year]?.[col])}
                         />
                       ))}
                       <td></td>{/* Empty cell for Actions column */}
