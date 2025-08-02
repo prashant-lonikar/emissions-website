@@ -4,24 +4,30 @@ import { useState } from 'react';
 import { EmissionData } from '@/types';
 import DetailsModal from './DetailsModal';
 import RerunModal from './RerunModal';
-import DataCell from './DataCell'; // <-- 1. IMPORT THE NEW COMPONENT
+import DataCell from './DataCell';
+import { ProcessedData } from '../page'; // Import the new type from page.tsx
 
 interface EmissionsTableProps {
-  data: Map<string, { [column: string]: EmissionData | undefined }>;
+  data: ProcessedData;
   columns: string[];
   companies: string[];
-  year: number;
 }
 
-export default function EmissionsTable({ data, columns, companies, year }: EmissionsTableProps) {
+export default function EmissionsTable({ data, columns, companies }: EmissionsTableProps) {
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
   const [rerunCompany, setRerunCompany] = useState<string | null>(null);
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
 
-  const handleCellClick = (companyName: string, column: string) => {
-    const companyData = data.get(companyName);
-    if (companyData && companyData[column]) {
-      setSelectedData(companyData[column]!);
-    }
+  const toggleCompanyExpansion = (companyName: string) => {
+    setExpandedCompanies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(companyName)) {
+        newSet.delete(companyName);
+      } else {
+        newSet.add(companyName);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -36,31 +42,60 @@ export default function EmissionsTable({ data, columns, companies, year }: Emiss
             </tr>
           </thead>
           <tbody>
-            {companies.map(companyName => (
-              <tr key={companyName}>
-                <td className="company-name">{companyName}</td>
+            {companies.map(companyName => {
+              const companyDataByYear = data.get(companyName);
+              if (!companyDataByYear) return null;
 
-                {/* --- 2. THIS IS THE REPLACEMENT --- */}
-                {/* We replace the entire old <td> logic with our new DataCell component */}
-                {columns.map(col => {
-                  const cellData = data.get(companyName)?.[col];
-                  return (
-                    <DataCell
-                      key={col}
-                      cellData={cellData}
-                      onOpenDetails={() => cellData && handleCellClick(companyName, col)}
-                    />
-                  );
-                })}
-                {/* --- END OF REPLACEMENT --- */}
+              const years = Object.keys(companyDataByYear).map(Number).sort((a,b) => b-a); // [2023, 2022, ...]
+              const latestYear = years[0];
+              const historicalYears = years.slice(1);
+              const isExpanded = expandedCompanies.has(companyName);
 
-                <td className="actions-cell">
-                  <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
-                    Re-run...
-                  </button>
-                </td>
-              </tr>
-            ))}
+              return (
+                // Use React.Fragment to group the main row and sub-rows
+                <React.Fragment key={companyName}>
+                  {/* --- Main Row for the Latest Year --- */}
+                  <tr className="main-row">
+                    <td className="company-name">
+                      <span className="expand-icon" onClick={() => toggleCompanyExpansion(companyName)}>
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
+                      {companyName}
+                      <span className="year-tag">{latestYear}</span>
+                    </td>
+                    {columns.map(col => (
+                      <DataCell
+                        key={`${companyName}-${latestYear}-${col}`}
+                        cellData={companyDataByYear[latestYear]?.[col]}
+                        onOpenDetails={() => companyDataByYear[latestYear]?.[col] && setSelectedData(companyDataByYear[latestYear]?.[col]!)}
+                      />
+                    ))}
+                    <td className="actions-cell">
+                      <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
+                        Re-run...
+                      </button>
+                    </td>
+                  </tr>
+                  
+                  {/* --- Historical Sub-rows (conditionally rendered) --- */}
+                  {isExpanded && historicalYears.map(year => (
+                    <tr key={`${companyName}-${year}`} className="sub-row">
+                      <td className="sub-row-year">
+                        - {year}
+                      </td>
+                      {columns.map(col => (
+                        <DataCell
+                          key={`${companyName}-${year}-${col}`}
+                          cellData={companyDataByYear[year]?.[col]}
+                          onOpenDetails={() => companyDataByYear[year]?.[col] && setSelectedData(companyDataByYear[year]?.[col]!)}
+                        />
+                      ))}
+                      <td></td>{/* Empty cell for Actions column */}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -70,7 +105,8 @@ export default function EmissionsTable({ data, columns, companies, year }: Emiss
       {rerunCompany && (
         <RerunModal 
           companyName={rerunCompany}
-          year={year}
+          // The Rerun modal works on a per-year basis, so we pass the latest year
+          year={data.get(rerunCompany) ? Math.max(...Object.keys(data.get(rerunCompany)!).map(Number)) : new Date().getFullYear()}
           allColumns={columns}
           onClose={() => setRerunCompany(null)} 
         />

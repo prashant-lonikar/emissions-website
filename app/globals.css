@@ -361,3 +361,36 @@ td.data-cell:hover .feedback-icons-on-hover {
 .add-company-btn:hover {
   background-color: #0056b3;
 }
+
+.company-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.expand-icon {
+  cursor: pointer;
+  font-size: 0.8em;
+  width: 1em; /* Reserve space */
+  text-align: center;
+  user-select: none; /* Prevent text selection */
+  color: #007bff;
+}
+.year-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: #e9ecef;
+  color: #6c757d;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.sub-row {
+  background-color: #f8f9fa;
+}
+.sub-row td {
+  border-color: #e9ecef; /* Lighter borders for sub-rows */
+}
+.sub-row-year {
+  padding-left: 2.5rem !important; /* Indent the year label */
+  font-weight: 600;
+  color: #6c757d;
+}
