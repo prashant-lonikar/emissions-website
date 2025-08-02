@@ -11,34 +11,36 @@ interface RerunItem {
 
 interface RerunModalProps {
   companyName: string;
-  year: number;
+  availableYears: number[]; // <-- CHANGED: Now receives all available years
   allColumns: string[];
   onClose: () => void;
 }
 
 // Helper to generate the default questions
 const generateDefaultQuestion = (dataPoint: string, companyName: string, year: number): string => {
-  return `What was ${companyName}'s total ${dataPoint.toLowerCase()} in ${year}? Rules: Answer has to be specifically at the overall company-level of ${companyName} (i.e. not subsidiary, regional, etc.). Answer has to be specifically the total ${dataPoint.toLowerCase()} amount, and has to be specifically for the year ${year}.`;
+  return `What was ${companyName}'s ${dataPoint.toLowerCase()} in ${year}?`;
 };
 
-export default function RerunModal({ companyName, year, allColumns, onClose }: RerunModalProps) {
+export default function RerunModal({ companyName, availableYears, allColumns, onClose }: RerunModalProps) {
   const [links, setLinks] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   
-  // --- NEW, more powerful state for the form ---
+  // --- NEW: State for the selected year ---
+  const [selectedYear, setSelectedYear] = useState<number>(availableYears[0]);
+  
   const [rerunItems, setRerunItems] = useState<RerunItem[]>([]);
 
-  // Initialize the state when the component mounts
+  // This effect now re-generates the questions if the user changes the year
   useEffect(() => {
     setRerunItems(allColumns.map(column => ({
       dataPoint: column,
-      question: generateDefaultQuestion(column, companyName, year),
-      isSelected: true, // Select all by default
+      question: generateDefaultQuestion(column, companyName, selectedYear),
+      isSelected: true,
     })));
-  }, [allColumns, companyName, year]);
+  }, [allColumns, companyName, selectedYear]); // Re-run when selectedYear changes
 
   const handleCheckboxChange = (index: number) => {
     setRerunItems(prev => prev.map((item, i) => i === index ? { ...item, isSelected: !item.isSelected } : item));
@@ -73,10 +75,9 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyName,
-          year,
+          year: selectedYear, // <-- CHANGED: Pass the user-selected year
           customLinks,
           secretKey,
-          // --- Send the new, more detailed payload ---
           rerunItems: selectedItems.map(({ dataPoint, question }) => ({ dataPoint, question })),
         }),
       });
@@ -99,13 +100,27 @@ export default function RerunModal({ companyName, year, allColumns, onClose }: R
     <div className="modal" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: '700px', height: 'auto' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Re-run for {companyName} ({year})</h2>
+          <h2>Re-run for {companyName}</h2>
           <span className="close-button" onClick={onClose}>×</span>
         </div>
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
-          <p>Provide links and select/edit the questions for the data points you want to re-run.</p>
+          <p>Select a year, provide new links, and select/edit questions to re-run.</p>
           
-          {/* --- NEW EDITABLE LIST --- */}
+          {/* --- NEW YEAR SELECTOR --- */}
+          <div className="form-group">
+            <label htmlFor="year-selector">Year to Re-run</label>
+            <select
+              id="year-selector"
+              className="year-selector-dropdown"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+            >
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
           <div className="form-group">
             <label>Data Points & Questions to Re-run</label>
             <div className="rerun-item-list">

@@ -386,3 +386,14 @@ td.data-cell:hover .feedback-icons-on-hover {
   color: #6c757d;
   background-color: #fdfdfe; /* A slightly off-white */
 }
+
+/* --- Style for Year Selector in Rerun Modal --- */
+.year-selector-dropdown {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background-color: white; /* Ensure it has a background */
+}

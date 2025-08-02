@@ -15,7 +15,6 @@ export default function EmissionsTable({ allData, columns }: EmissionsTableProps
   const [selectedData, setSelectedData] = useState<EmissionData | null>(null);
   const [rerunCompany, setRerunCompany] = useState<string | null>(null);
 
-  // useMemo will group the data only when allData changes, improving performance
   const groupedData = useMemo(() => {
     const map = new Map<string, { [year: number]: { [data_point_type: string]: EmissionData } }>();
     allData.forEach(item => {
@@ -36,7 +35,7 @@ export default function EmissionsTable({ allData, columns }: EmissionsTableProps
           <thead>
             <tr>
               <th>Company</th>
-              <th>Year</th> {/* <-- NEW YEAR COLUMN */}
+              <th>Year</th>
               {columns.map(col => <th key={col}>{col}</th>)}
               <th>Actions</th>
             </tr>
@@ -49,18 +48,13 @@ export default function EmissionsTable({ allData, columns }: EmissionsTableProps
 
               return years.map((year, yearIndex) => (
                 <tr key={`${companyName}-${year}`}>
-                  {/* Render Company Name and Actions only for the FIRST row of the group */}
                   {yearIndex === 0 && (
-                    <>
-                      <td className="company-name-cell" rowSpan={yearCount}>
-                        {companyName}
-                      </td>
-                    </>
+                    <td className="company-name-cell" rowSpan={yearCount}>
+                      {companyName}
+                    </td>
                   )}
-                  {/* Always render the Year column */}
                   <td className="year-cell">{year}</td>
                   
-                  {/* Always render the data point columns */}
                   {columns.map(col => (
                     <DataCell
                       key={`${companyName}-${year}-${col}`}
@@ -69,7 +63,6 @@ export default function EmissionsTable({ allData, columns }: EmissionsTableProps
                     />
                   ))}
 
-                  {/* Render Actions only for the FIRST row of the group */}
                   {yearIndex === 0 && (
                     <td className="actions-cell" rowSpan={yearCount}>
                       <button className="rerun-button" onClick={() => setRerunCompany(companyName)}>
@@ -89,7 +82,8 @@ export default function EmissionsTable({ allData, columns }: EmissionsTableProps
       {rerunCompany && (
         <RerunModal 
           companyName={rerunCompany}
-          year={Math.max(...Object.keys(groupedData.get(rerunCompany)!).map(Number))}
+          // --- CHANGED: Pass all available years for the selected company ---
+          availableYears={Object.keys(groupedData.get(rerunCompany)!).map(Number).sort((a, b) => b - a)}
           allColumns={columns}
           onClose={() => setRerunCompany(null)} 
         />
