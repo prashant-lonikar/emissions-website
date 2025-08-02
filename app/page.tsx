@@ -38,7 +38,7 @@ export default function HomePage() {
           }
         });
         
-        const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2 (Market-based)", "Scope 3"];
+        const preferredColumnOrder = ["Revenue", "Scope 1", "Scope 2", "Scope 3"];
         const finalColumns = Array.from(columnSet).sort((a, b) => {
             const indexA = preferredColumnOrder.indexOf(a);
             const indexB = preferredColumnOrder.indexOf(b);
